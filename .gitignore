@@ -1,0 +1,7 @@
+# Long-term ignore — keys, tokens, reports, test junk
+.env
+*.key
+*.pem
+deblote-report.json
+__pycache__/
+*.pyc
