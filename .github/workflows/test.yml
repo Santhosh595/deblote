@@ -1,0 +1,16 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Simulate clean (fake tree)
+        run: python deblote.py --simulate ./deblote-test --clean
+      - name: Quick preview (dry-run, no delete)
+        run: python deblote.py --quick

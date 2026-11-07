@@ -2,6 +2,7 @@
 .env
 *.key
 *.pem
+deblote-log.json
 deblote-report.json
 __pycache__/
 *.pyc
