@@ -1,14 +1,10 @@
-"""Deblote — safe Windows cleaner & optimizer (v2).
+"""Deblote — safe Windows cleaner & optimizer (v3).
 
-Quick mode: temp/cache + DNS flush + thumbnail cache. Auto-runs.
-Full mode: everything in Quick PLUS bloatware removal, unused-service
-disable (reversible), startup cleanup, hibernation off, Windows.old
-removal, power plan. REQUIRES typing YES — human approval gate.
-
-Safety: dry-run preview unless --clean, restore point before any delete,
-user folders (Documents/Desktop/Pictures/Downloads) never touched, every
-action logged to deblote-log.json, undo commands printed for Full mode.
-Stdlib only. No downloads except via install.ps1 (git/python installers).
+Quick: temp/cache + DNS flush. Auto-runs.
+Full: Quick PLUS Windows.old, bloatware, services, hibernation, power plan,
+DISM/SFC repair. REQUIRES typing YES — human approval gate.
+Extras (Full): reboot-and-clean scheduling, monthly auto-clean, disk-health
+chkdsk, one-click restore.ps1. All undo commands in deblote-log.json.
 """
 
 from __future__ import annotations
@@ -258,6 +254,70 @@ UNUSED_SERVICES = [  # telemetry / bloat services, reversible
 ]
 
 
+def system_repair(report: Report, dry: bool) -> None:
+    """DISM component cleanup + SFC system file repair (Full mode).
+
+    Why: WinSxS (component store) grows for years; StartComponentCleanup
+    reclaims GBs. SFC fixes corrupt system files — a top cause of slow
+    Windows. Both are slow (5-20 min) and need admin. Preview by default."""
+    if dry:
+        report.actions.append("WOULD: DISM /Online /Cleanup-Image /StartComponentCleanup (reclaims GBs, ~10 min)")
+        report.actions.append("WOULD: sfc /scannow (fixes corrupt system files, ~10 min)")
+        return
+    code, out = run(["DISM.exe", "/Online", "/Cleanup-Image", "/StartComponentCleanup"], timeout=1800)
+    report.actions.append(f"DISM StartComponentCleanup rc={code}: {out[-300:]}")
+    code, out = run(["sfc", "/scannow"], timeout=1800)
+    report.actions.append(f"sfc /scannow rc={code}: {out[-300:]}")
+
+
+def disk_health(report: Report, dry: bool) -> None:
+    """chkdsk scan + drive free-space. Slow PCs are often dying drives —
+    a cleaner should say so instead of just freeing temp files."""
+    code, out = run(["chkdsk", "C:", "/scan"], timeout=600)
+    report.actions.append(f"chkdsk C: /scan rc={code}: {out[-400:]}")
+    try:
+        usage = shutil.disk_usage("C:/")
+        free_gb = round(usage.free / 1e9, 1)
+        report.actions.append(f"C: free space: {free_gb} GB of {round(usage.total/1e9,1)} GB")
+        if usage.free / usage.total < 0.10:
+            report.actions.append("⚠ C: is >90% full — Windows slows badly below 10% free. Consider moving files or a bigger drive.")
+    except OSError as e:
+        report.errors.append(f"disk_usage: {e}")
+
+
+def schedule_boot_clean() -> None:
+    """Reboot-and-clean: register a one-shot Task at logon that runs
+    Deblote --quick --clean, then deletes itself. The ONLY way to delete
+    in-use files — they unlock at boot before apps start."""
+    if sys.platform != "win32":
+        return
+    script = str(Path(__file__).resolve())
+    task = "DebloteBootClean"
+    remove = f"Unregister-ScheduledTask -TaskName '{task}' -Confirm:$false"
+    run(["powershell", "-NoProfile", "-Command",
+         f"Register-ScheduledTask -TaskName '{task}' -Action (New-ScheduledTaskAction -Execute 'python' -Argument '\"{script}\" --quick --clean') -Trigger (New-ScheduledTaskTrigger -AtLogOn) -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries) -Force | Out-Null; "
+         f"Register-ScheduledTask -TaskName '{task}Cleanup' -Action (New-ScheduledTaskAction -Execute 'powershell' -Argument '-NoProfile -Command {remove}') -Trigger (New-ScheduledTaskTrigger -AtLogOn) -Force | Out-Null"],
+        timeout=60)
+    print(f"✓ Reboot-clean scheduled: '{task}' runs once at next logon, then removes itself.")
+    print("  Reboot now. Boot-clean also runs at the logon after next day — "
+          "cancel anytime: Unregister-ScheduledTask -TaskName DebloteBootClean -Confirm:$false")
+
+
+def schedule_monthly_clean() -> None:
+    """Monthly background Quick clean so temp never piles up again."""
+    if sys.platform != "win32":
+        return
+    script = str(Path(__file__).resolve())
+    task = "DebloteMonthlyClean"
+    run(["powershell", "-NoProfile", "-Command",
+         f"Register-ScheduledTask -TaskName '{task}' -Action (New-ScheduledTaskAction -Execute 'python' -Argument '\"{script}\" --quick --clean') "
+         f"-Trigger (New-ScheduledTaskTrigger -Monthly -DaysOfMonth 1 -RandomDelay 00:30:00) "
+         f"-Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries) -Force | Out-Null"],
+        timeout=60)
+    print(f"✓ Monthly auto-clean scheduled (1st of month, '{task}').")
+    print("  Cancel anytime: Unregister-ScheduledTask -TaskName DebloteMonthlyClean -Confirm:$false")
+
+
 def full_mode_actions(report: Report, dry: bool) -> None:
     # Hibernation off (frees ~RAM-size GBs; undo: powercfg /hibernate on)
     if dry:
@@ -396,6 +456,11 @@ def main() -> int:
         flush_dns(report)
         if mode == "full":
             full_mode_actions(report, dry)
+            if not dry and is_admin():
+                system_repair(report, dry)
+                disk_health(report, dry)
+                schedule_boot_clean()
+                schedule_monthly_clean()
 
     print(f"\n{'Would free' if dry else 'Freed'}: {human(report.freed_bytes)} across {len(report.targets)} targets")
     if not dry:

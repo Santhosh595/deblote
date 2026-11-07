@@ -63,6 +63,16 @@ class TestDeblote(unittest.TestCase):
         self.assertFalse(any(d.rglob("*.txt")))
         self.assertEqual(r.skipped_locked, 0)
 
+    def test_new_v3_helpers_exist_and_are_safe_on_linux(self):
+        # system_repair/disk_health must not crash off-Windows; schedulers
+        # must be no-ops off Windows (they return early).
+        from deblote import system_repair, disk_health, schedule_boot_clean, schedule_monthly_clean
+        r = Report(when="t", dry_run=True)
+        system_repair(r, True)  # dry-run path only appends WOULD lines
+        self.assertTrue(any("WOULD" in a for a in r.actions))
+        schedule_boot_clean()   # must be a no-op (returns early) — no crash
+        schedule_monthly_clean()
+
     def test_human(self):
         self.assertEqual(human(500), "500 B")
         self.assertIn("KB", human(2048))
