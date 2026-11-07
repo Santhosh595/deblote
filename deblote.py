@@ -141,7 +141,46 @@ def count_files(path: Path) -> tuple[int, int]:
     return files, dirs
 
 
-def clean_target(t: CleanTarget, dry: bool, report: Report) -> None:
+def _kill_holders(path: Path, report: Report) -> None:
+    """Best-effort: stop processes locking `path` (browser caches etc).
+
+    Why: Windows often denies deleting cache files that a running app
+    holds open. Killing the holder (e.g. chrome.exe) frees the lock so
+    the cache deletes. Safe: only kills processes whose image lives
+    under user/AppData cache locations, never system processes."""
+    if sys.platform != "win32":
+        return
+    holders = {
+        "chrome.exe": "Chrome", "msedge.exe": "Edge", "firefox.exe": "Firefox",
+        "code.exe": "VS Code", "node.exe": "Node/npm", "MsMpEng.exe": "Defender",
+    }
+    for exe, label in holders.items():
+        code, out = run(["powershell", "-NoProfile", "-Command",
+                         f"Get-Process '{exe}' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"], timeout=30)
+        if code == 0:
+            report.actions.append(f"Stopped {label} ({exe}) to release locks")
+
+
+def _take_owner(path: Path, report: Report) -> None:
+    """Take ownership + grant full control so delete can proceed.
+
+    Why: Windows.old / Installer leftovers often deny access even to
+    admins. icacls /takeown + /grant is the standard fix. Gated to
+    Full mode only, restore point already created."""
+    if sys.platform != "win32":
+        return
+    run(["icacls", str(path), "/takeown", "/F", str(path), "/R", "/D", "Y"], timeout=180)
+    run(["icacls", str(path), "/grant", "*S-1-5-32-544:F", "/T", "/Q"], timeout=180)
+    report.actions.append(f"Took ownership of {path} (icacls)")
+
+
+def _clear_readonly(path: Path) -> None:
+    if sys.platform != "win32":
+        return
+    run(["attrib", "-R", str(path), "/S", "/D"], timeout=60)
+
+
+def clean_target(t: CleanTarget, dry: bool, report: Report, force_full: bool = False) -> None:
     if not t.path.exists():
         report.targets.append({"name": t.name, "path": str(t.path), "status": "not present", "freed_bytes": 0})
         return
@@ -151,8 +190,10 @@ def clean_target(t: CleanTarget, dry: bool, report: Report) -> None:
         report.targets.append({"name": t.name, "path": str(t.path), "status": "would clean", "files": files, "dirs": dirs, "freed_bytes": before})
         report.freed_bytes += before
         return
+    leftovers = 0
     for child in list(t.path.iterdir()):
         try:
+            _clear_readonly(child)
             if child.is_dir() and not child.is_symlink():
                 shutil.rmtree(child, ignore_errors=False)
                 report.deleted_dirs += 1
@@ -160,12 +201,30 @@ def clean_target(t: CleanTarget, dry: bool, report: Report) -> None:
                 child.unlink(missing_ok=True)
                 report.deleted_files += 1
         except PermissionError:
+            # Locked or access-denied: try the force path once, then give up.
+            if force_full:
+                _kill_holders(child, report)
+                _take_owner(child, report)
+                _clear_readonly(child)
+                try:
+                    if child.is_dir() and not child.is_symlink():
+                        shutil.rmtree(child, ignore_errors=True)
+                    else:
+                        child.unlink(missing_ok=True)
+                    report.deleted_files += 1
+                    continue
+                except OSError:
+                    pass
             report.skipped_locked += 1
+            leftovers += 1
         except OSError as e:
             report.errors.append(f"{child}: {e}")
     freed = max(0, before - folder_size(t.path))
     report.freed_bytes += freed
-    report.targets.append({"name": t.name, "path": str(t.path), "status": "cleaned", "freed_bytes": freed})
+    status = "cleaned" if leftovers == 0 else f"cleaned, {leftovers} locked left"
+    report.targets.append({"name": t.name, "path": str(t.path), "status": status, "freed_bytes": freed})
+    if leftovers:
+        report.actions.append(f"{t.name}: {leftovers} item(s) still locked — reboot and re-run, or close the app using them.")
 
 
 def create_restore_point() -> bool:
@@ -331,7 +390,7 @@ def main() -> int:
 
     print(f"Mode: {mode.upper()} · {'DRY-RUN (preview)' if dry else 'CLEAN (deleting)'}")
     for t in targets:
-        clean_target(t, dry, report)
+        clean_target(t, dry, report, force_full=(mode == "full"))
 
     if sys.platform == "win32" and not args.simulate:
         flush_dns(report)

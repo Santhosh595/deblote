@@ -20,6 +20,20 @@ $Dest = Join-Path $env:USERPROFILE "deblote"
 
 Write-Host "=== Deblote installer ===" -ForegroundColor Cyan
 
+# 0. Self-elevate: most cleans need Administrator. Re-launch elevated once.
+$id = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not $id.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "Not Administrator — re-launching elevated (click Yes on the prompt)..." -ForegroundColor Yellow
+    $args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $PSCommandPath)
+    Start-Process powershell -Verb RunAs -ArgumentList $args
+    # If launched via irm|iex (no file), fall back to manual instruction:
+    if (-not $PSCommandPath) {
+        Write-Host "Right-click PowerShell → Run as Administrator, then re-run the one-liner." -ForegroundColor Red
+    }
+    exit
+}
+Write-Host "✓ Running as Administrator"
+
 # 1. Git
 $git = Get-Command git -ErrorAction SilentlyContinue
 if (-not $git) {
