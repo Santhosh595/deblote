@@ -1,83 +1,241 @@
-<h1 align="center">🧹 Deblote</h1>
+<div align="center">
 
-<p align="center"><b>Clean Windows. Make old PCs fast again.</b> Temp/cache rebuild, bloatware removed, bloat services off — in one command.</p>
+# 🧹 Deblote
 
-<p align="center">
-  <a href="https://github.com/Santhosh595/deblote/actions/workflows/test.yml"><img src="https://github.com/Santhosh595/deblote/actions/workflows/test.yml/badge.svg" alt="tests"></a>
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
-  <img src="https://img.shields.io/badge/platform-Windows-blue" alt="Windows">
-  <img src="https://img.shields.io/badge/python-3.11%2B-yellow" alt="Python 3.11+">
-</p>
+### Clean Windows. Make old PCs fast again.
 
-## ⚡ One-line install (Windows PowerShell)
+**One command. Zero bloat. No BS.**<br>
+Temp & cache gone · Bloatware removed · Services tuned · Startup faster
+
+[![Tests](https://github.com/Santhosh595/deblote/actions/workflows/test.yml/badge.svg)](https://github.com/Santhosh595/deblote/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D4?logo=windows&logoColor=white)](https://github.com/Santhosh595/deblote)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PowerShell](https://img.shields.io/badge/PowerShell-7%2B-5391FE?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
+[![Stars](https://img.shields.io/github/stars/Santhosh595/deblote?style=social)](https://github.com/Santhosh595/deblote/stargazers)
+[![Forks](https://img.shields.io/github/forks/Santhosh595/deblote?style=social)](https://github.com/Santhosh595/deblote/forks)
+[![Issues](https://img.shields.io/github/issues/Santhosh595/deblote)](https://github.com/Santhosh595/deblote/issues)
+
+</div>
+
+---
+
+## ⚡ Quick Start — One Line
+
+Open **PowerShell** (Win + X → Terminal) and paste:
 
 ```powershell
 irm https://raw.githubusercontent.com/Santhosh595/deblote/main/install.ps1 | iex
 ```
 
-That checks for **Git** (installs via `winget` if missing) → checks for **Python** (installs if missing) → clones this repo → runs a **Quick preview**. Nothing is deleted until you say so.
+**That's it.** Deblote will:
 
-> Prefer to read first? Open `install.ps1` — it's 60 lines and only does the 4 steps above. No telemetry, no other URLs.
+1. ✅ Check for **Git** → install via `winget` if missing
+2. ✅ Check for **Python** → install if missing
+3. ✅ Clone this repo → `C:\Users\<you>\deblote`
+4. ✅ Run a **Quick preview** — nothing deleted until you say so
 
-## Two versions
+> 🔒 **No hidden stuff.** `install.ps1` is ~70 lines. Read it in 2 minutes. The only URL it touches is GitHub.
 
-| | ⚡ Quick (auto) | 🧹 Full (needs your `YES`) |
-|---|---|---|
-| Temp / cache / update cache | ✅ | ✅ |
-| DNS flush | ✅ | ✅ |
-| `Windows.old`, upgrade leftovers | — | ✅ |
-| Bloatware apps removed (Phone Link, Clipchamp, Candy Crush, Solitaire…) | — | ✅ |
-| Bloat services → Manual (DiagTrack, Maps, Fax, RetailDemo…) | — | ✅ (reversible) |
-| Hibernation off (frees GBs) | — | ✅ |
-| High Performance power plan | — | ✅ |
-| Startup list printed | — | ✅ (you click in Task Manager) |
-| Restore point first | ✅ | ✅ |
-| Undo commands logged | — | ✅ (`deblote-log.json`) |
+---
+
+## 🎬 What It Looks Like
 
 ```powershell
-cd $env:USERPROFILE\deblote
-python deblote.py --quick --clean     # fast + safe
-python deblote.py --full --clean      # FULL — asks YES first
+PS C:\Users\you\deblote> python deblote.py --quick --clean
+
+  Deblote — Quick clean (dry-run=False)
+  ──────────────────────────────────
+  [OK] Restore point created: "Deblote 2026-11-07 15:30"
+
+  CLEAN  User TEMP .................... 1.2 GB
+  CLEAN  Windows Temp ................. 340 MB
+  CLEAN  Prefetch .....................  85 MB
+  CLEAN  Windows Update cache ......... 2.1 GB
+  CLEAN  Browser caches (Edge/Chrome) . 640 MB
+  CLEAN  Dev caches (npm/pip/VS Code) . 910 MB
+  DNS    flushed
+
+  ✅ Freed: 5.27 GB  |  Skipped (locked): 3  |  Log: deblote-log.json
 ```
 
-## That's it — what gets cleaned
+---
 
-User TEMP/TMP · Windows Temp · Prefetch · Windows Update download cache ·
-Edge/Chrome/Firefox caches · npm/pip/VS Code caches · thumbnail cache ·
-crash dumps. In Full mode also: `Windows.old`, `$Windows.~BT/WS`, hibernation file.
+## ✨ Why Deblote?
 
-## 🔒 Security — read this
+| Feature | Deblote | CCleaner | Manual cleanup |
+|---------|:-------:|:--------:|:--------------:|
+| One-line install | ✅ | ❌ | ❌ |
+| Dry-run by default (preview first) | ✅ | ❌ | — |
+| Restore point before deleting | ✅ | ⚠️ | ❌ |
+| Never touches Documents/Desktop/Downloads | ✅ | ⚠️ | — |
+| Open source, no ads / "Pro" upsell | ✅ MIT | ❌ | — |
+| Revoke bloat (Phone Link, Copilot…) | ✅ Full mode | ❌ | ❌ |
+| Reboot-and-clean locked files | ✅ Auto | ❌ | ❌ |
+| Monthly auto-clean (scheduled) | ✅ | ❌ | ❌ |
+| DISM + SFC repair built-in | ✅ | ❌ | ❌ |
+| One-click undo (`restore.ps1`) | ✅ | ❌ | ❌ |
+| Stdlib only — no `pip install` | ✅ | — | — |
 
-- **No prompt-injection / invisible instructions.** This repo contains zero AI, zero LLM calls, zero data sent anywhere. Every file is plain Python + PowerShell you can read in 10 minutes. Search the repo for `http` — the only URL is the GitHub clone in `install.ps1`.
+---
+
+## 🧭 Two Modes — Pick Your Level
+
+### ⚡ Quick — *Everyday cleanup (auto, safe)*
+Perfect for weekly use. No bloat removal, no system changes.
+
+```powershell
+python deblote.py --quick --clean
+```
+
+### 🧹 Full — *Deep clean (needs your approval)*
+Removes bloat, tunes services, frees hibernation space, repairs Windows. **Asks you to type `YES` + requires Administrator.** Creates a Restore Point first. Logs every change so you can undo it.
+
+```powershell
+python deblote.py --full --clean
+```
+
+| Task | ⚡ Quick | 🧹 Full |
+|------|:--------:|:-------:|
+| Temp / cache / update cache | ✅ | ✅ |
+| DNS flush | ✅ | ✅ |
+| Restore point first | ✅ | ✅ |
+| `Windows.old` + upgrade leftovers (`$Windows.~BT`) | — | ✅ |
+| Bloatware apps removed (Phone Link, Clipchamp, Candy Crush, Solitaire…) | — | ✅ |
+| Bloat services → Manual (DiagTrack, Maps, Fax, RemoteRegistry…) | — | ✅ reversible |
+| Hibernation off (frees GBs) | — | ✅ |
+| High Performance power plan | — | ✅ |
+| Startup list printed for you to trim | — | ✅ |
+| DISM `StartComponentCleanup` (WinSxS, GBs) | — | ✅ |
+| SFC `/scannow` (fixes corrupt system files) | — | ✅ |
+| Reboot-and-clean (locked files) | — | ✅ scheduled |
+| Monthly auto-clean | — | ✅ scheduled |
+| Disk health check (`chkdsk /scan` + free-space) | ✅ report | ✅ full check |
+| Undo log → `deblote-log.json` + `restore.ps1` | — | ✅ |
+
+---
+
+## 🧹 What Gets Cleaned
+
+**User TEMP/TMP** · **Windows Temp** · **Prefetch** · **Windows Update download cache** · **Edge/Chrome/Firefox caches** · **npm / pip / VS Code caches** · **Thumbnail cache** · **Crash dumps**
+
+**Full mode adds:** `Windows.old` · `$Windows.~BT/WS` · hibernation file · bloatware apps & services · WinSxS via DISM · corrupt files via SFC
+
+> 🛡️ **User folders are never touched** — Documents, Desktop, Pictures, Downloads, Videos are excluded by design (and covered by a unit test).
+
+---
+
+## 🔒 Locked Files? Handled.
+
+Windows locks files that are in use. Deblote does **3 tiers**:
+
+1. **Read-only flag cleared** (`attrib -R`) — always, safe
+2. **Full mode:** closes holder processes (Chrome, Edge, VS Code…), takes ownership (`icacls /takeown`)
+3. **Still locked?** Registers **Reboot-and-clean** — runs automatically at next logon, then deletes itself. No more "access denied" frustration.
+
+Anything still left is **honestly reported** as `locked left — reboot and re-run`, never faked as deleted.
+
+---
+
+## 🔄 Undo Everything — `restore.ps1`
+
+Changed your mind? One click puts it back:
+
+```powershell
+.\restore.ps1
+```
+
+- Hibernate back on · Balanced power plan
+- Services → Automatic (DiagTrack, MapsBroker, Fax, RemoteRegistry, RetailDemo…)
+- Unregisters reboot + monthly scheduled tasks
+- **Plus:** System Restore Point is your ultimate undo — `rstrui.exe` → pick the Deblote point
+
+---
+
+## 🔐 Security — Read This
+
+- **No prompt-injection / invisible instructions.** Zero AI, zero LLM calls, zero data sent anywhere. Plain Python + PowerShell you can read in 10 minutes. Search the repo for `http` — the only URL is the GitHub clone in `install.ps1`.
 - **Dry-run by default.** Running `deblote.py` with no flags deletes nothing.
 - **Restore point before deleting.** Full mode additionally requires typing `YES` and Administrator rights.
-- **User folders are never touched.** Documents, Desktop, Pictures, Downloads, Videos are excluded by design (and covered by a unit test).
-- **Every action is logged** to `deblote-log.json` with undo commands for Full mode.
+- **User folders never touched.** Excluded by design + unit-tested.
+- **Every action logged** to `deblote-log.json` with undo commands for Full mode.
 - **Stdlib only.** No `pip install`, no admin needed for preview.
 
-## What Deblote does NOT do (on purpose)
+---
+
+## ❌ What Deblote Does *NOT* Do (on purpose)
 
 - No registry "cleaners" — that's how PCs get bricked.
 - No fake "RAM booster" — close browser tabs, that actually works.
-- No auto-uninstall of your programs — Full mode only removes pre-installed Windows bloat; everything else is listed and reversible.
+- No auto-uninstall of *your* programs — Full mode only removes pre-installed Windows bloat; everything else is listed and reversible.
+- No telemetry, no ads, no "Pro" version. Ever.
 
-## Test it anywhere (Linux/macOS too)
+---
+
+## 🛠️ Requirements
+
+| Need | Notes |
+|------|-------|
+| Windows 10 / 11 | 64-bit |
+| PowerShell 5.1+ | Built-in, no install needed |
+| Git + Python | **Auto-installed by `install.ps1`** if missing (via `winget`) |
+| Administrator | Only for Full mode — installer self-elevates if needed |
+
+---
+
+## 🧪 Test It Anywhere (Linux / macOS too)
 
 ```bash
-python deblote.py --simulate /tmp/deblote-test           # preview
+python deblote.py --simulate /tmp/deblote-test           # preview (no deletion)
 python deblote.py --simulate /tmp/deblote-test --clean   # "clean" the fake tree
-python -m unittest discover -s tests -v                 # 5 tests
+python -m unittest discover -s tests -v                  # 7 tests
 ```
 
-## Files
+All tests pass in CI on `windows-latest` — see the badge at the top.
+
+---
+
+## 📁 Files
 
 | File | What |
-|---|---|
-| `install.ps1` | One-line bootstrapper (Git + Python check/install, clone, run) |
-| `deblote.py` | The cleaner (Quick + Full) — run this |
+|------|------|
+| `install.ps1` | One-line bootstrapper — Git + Python check/install, clone, run |
+| `deblote.py` | **The cleaner** — Quick + Full, DISM/SFC, schedulers, disk health |
 | `clean.ps1` | PowerShell-only version (no Python needed) |
-| `tests/test_deblote.py` | Unit tests |
+| `restore.ps1` | Undo a Full clean — restore services, power plan, hibernation, tasks |
+| `tests/test_deblote.py` | Unit tests (incl. user-folder safety + locked-file honesty) |
+| `.github/workflows/test.yml` | CI — runs tests on Windows on every push |
 
-## License
+---
+
+## 🤝 Contributing
+
+Issues & PRs welcome! Keep it simple: short functions, comments that explain *why*, stdlib only, dry-run by default. Run the tests before pushing:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+---
+
+## ⭐ Star History
+
+<a href="https://star-history.com/#Santhosh595/deblote&Date">
+  <img src="https://api.star-history.com/svg?repos=Santhosh595/deblote&type=Date" alt="Star History Chart">
+</a>
+
+---
+
+## 📄 License
 
 MIT — do whatever, no warranty. Windows is a trademark of Microsoft.
+
+---
+
+<div align="center">
+
+**Keywords:** windows cleaner · windows debloat · pc optimizer · speed up windows · windows 11 debloater · system cleaner · temp cleaner · windows optimizer · bloatware remover · windows 10 speed up
+
+Made with 💙 for slow PCs everywhere. If Deblote saved your old laptop, ⭐ the repo!
+
+</div>
