@@ -21,6 +21,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+# Windows console default encoding (cp1252) cannot print ✓/⚠/→ symbols, which
+# crashed CI with UnicodeEncodeError. Force UTF-8 early.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 @dataclass
 class CleanTarget:
     name: str
